@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>HealthMetrics BD</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:        #f6f7f9;
+  --surface:   #ffffff;
+  --surface2:  #f0f2f5;
+  --surface3:  #e8eaf0;
+  --border:    #e2e5ec;
+  --border2:   #c9cdd8;
+  --text:      #111827;
+  --text2:     #4b5563;
+  --text3:     #9ca3af;
+  --primary:   #0f7a52;
+  --primary-l: #e6f5ee;
+  --primary-d: #085c3c;
+  --blue:      #1d6fb8;
+  --blue-l:    #e8f1fb;
+  --amber:     #b45309;
+  --amber-l:   #fef3c7;
+  --purple:    #6d28d9;
+  --purple-l:  #ede9fe;
+  --red:       #b91c1c;
+  --sans:      'Plus Jakarta Sans', sans-serif;
+  --mono:      'DM Mono', monospace;
+  --r-md:      8px;
+  --r-lg:      12px;
+  --r-xl:      16px;
+  --sw:        252px;
+  --topbar-h:  56px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 15px; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 400; min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+/* ── FLAG ── */
+.flag-bar { height: 3px; background: linear-gradient(90deg, #006A4E 50%, #F42A41 50%); position: fixed; top: 0; left: 0; right: 0; z-index: 600; }
+
+/* ── OVERLAY ── */
+#overlay {
+  position: fixed; inset: 0;
+  background: rgba(17, 24, 39, 0.4);
+  z-index: 350; pointer-events: none;
+  opacity: 0; transition: opacity .24s ease;
+}
+#overlay.open { opacity: 1; pointer-events: auto; }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  position: fixed; top: 3px; left: 0; bottom: 0;
+  width: var(--sw);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  z-index: 400;
+  transition: transform .28s cubic-bezier(.4, 0, .2, 1);
+  overflow: hidden;
+}
+.sb-head {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; position: relative;
+}
+.logo-wrap { display: flex; align-items: center; gap: 11px; }
+.logo-icon {
+  width: 36px; height: 36px; border-radius: var(--r-md);
+  background: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-icon svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.logo-text { line-height: 1.2; }
+.logo-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+.logo-name span { color: var(--primary); }
+.logo-sub { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; margin-top: 2px; }
+.sb-body { flex: 1; overflow-y: auto; padding: 8px 0 12px; }
+.nav-group { padding: 16px 16px 4px; font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--text3); }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; margin: 1px 8px;
+  font-size: 13px; font-weight: 400; color: var(--text2);
+  cursor: pointer; border-radius: var(--r-md);
+  border: 1px solid transparent;
+  transition: all .13s; user-select: none;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--primary-l); color: var(--primary-d); font-weight: 500; border-color: rgba(15,122,82,.15); }
+.nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: .6; }
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge { margin-left: auto; font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 99px; background: var(--surface2); color: var(--text3); }
+.nav-item.active .nav-badge { background: rgba(15,122,82,.12); color: var(--primary); }
+.sb-foot {
+  padding: 14px 20px; border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sb-foot-user { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--primary-l); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--primary-d); flex-shrink: 0; }
+.user-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.user-role { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.live-row { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); animation: blink 2.2s ease-in-out infinite; flex-shrink: 0; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* CLOSE BTN */
+.sb-close {
+  display: none; position: absolute; top: 14px; right: 14px;
+  width: 26px; height: 26px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; color: var(--text2); font-size: 13px;
+  align-items: center; justify-content: center;
+  line-height: 1; transition: all .13s;
+}
+.sb-close:hover { background: var(--surface3); color: var(--text); }
+
+/* ── MAIN ── */
+#main { margin-left: var(--sw); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── TOPBAR ── */
+.topbar {
+  height: var(--topbar-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 3px; z-index: 200; gap: 12px;
+  flex-shrink: 0;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+.hamburger {
+  display: none; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0;
+  background: transparent; border: 1px solid var(--border); border-radius: var(--r-md);
+  cursor: pointer; transition: border-color .13s;
+}
+.hamburger:hover { border-color: var(--border2); background: var(--surface2); }
+.hamburger svg { width: 16px; height: 16px; stroke: var(--text2); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+.breadcrumb { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.bc-root { font-size: 13px; color: var(--text3); white-space: nowrap; }
+.bc-sep { font-size: 13px; color: var(--text3); }
+.bc-page { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.top-select {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--mono); font-size: 11px;
+  padding: 5px 10px; border-radius: var(--r-md); cursor: pointer; outline: none;
+  transition: border-color .13s;
+}
+.top-select:focus { border-color: var(--primary); }
+.top-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text2); font-family: var(--sans); font-size: 12px; font-weight: 400;
+  padding: 5px 12px; border-radius: var(--r-md); cursor: pointer;
+  transition: all .13s; white-space: nowrap;
+}
+.top-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+.top-btn svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; }
+.top-btn-primary {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+  font-weight: 500;
+}
+.top-btn-primary:hover { background: var(--primary-d); border-color: var(--primary-d); color: #fff; }
+
+/* ── CONTENT ── */
+.content { padding: 24px 28px 72px; flex: 1; }
+
+/* PAGE HEADER */
+.page-hdr { margin-bottom: 22px; }
+.page-title { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -.02em; display: flex; align-items: center; gap: 10px; }
+.flag-mini { display: flex; width: 22px; height: 14px; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+.fm-g { flex: 1; background: #006A4E; }
+.fm-r { width: 9px; background: #F42A41; display: flex; align-items: center; justify-content: center; }
+.fm-c { width: 5px; height: 5px; border-radius: 50%; background: #fff; }
+.page-sub { font-size: 13px; color: var(--text3); margin-top: 4px; }
+.page-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.tag { font-family: var(--mono); font-size: 10px; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--border); color: var(--text3); background: var(--surface); }
+.tag.green { background: var(--primary-l); color: var(--primary-d); border-color: rgba(15,122,82,.2); }
+
+/* ── KPI GRID ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 20px; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+.kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 18px 20px;
+  position: relative; overflow: hidden;
+  transition: box-shadow .2s, border-color .2s;
+  animation: fadeUp .4s ease both;
+}
+.kpi:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); border-color: var(--border2); }
+.kpi-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--ka, var(--primary)); border-radius: var(--r-xl) var(--r-xl) 0 0; }
+.kpi:nth-child(2) .kpi-accent { --ka: var(--blue); }
+.kpi:nth-child(3) .kpi-accent { --ka: var(--amber); }
+.kpi:nth-child(4) .kpi-accent { --ka: var(--purple); }
+.kpi-icon { width: 32px; height: 32px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; background: var(--ki-bg, var(--primary-l)); }
+.kpi-icon svg { width: 15px; height: 15px; stroke: var(--ki-c, var(--primary)); stroke-width: 2; fill: none; stroke-linecap: round; }
+.kpi:nth-child(2) .kpi-icon { --ki-bg: var(--blue-l); --ki-c: var(--blue); }
+.kpi:nth-child(3) .kpi-icon { --ki-bg: var(--amber-l); --ki-c: var(--amber); }
+.kpi:nth-child(4) .kpi-icon { --ki-bg: var(--purple-l); --ki-c: var(--purple); }
+.kpi-label { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+.kpi-val { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; margin-bottom: 6px; letter-spacing: -.02em; transition: color .3s; }
+.kpi-val.updating { color: var(--primary); }
+.kpi-delta { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+.delta-up { color: var(--primary); font-weight: 500; }
+.delta-dn { color: var(--amber); font-weight: 500; }
+
+/* ── PANELS ── */
+.grid-2 { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 14px; margin-bottom: 14px; animation: fadeUp .4s ease .08s both; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin-bottom: 14px; animation: fadeUp .4s ease .16s both; }
+.grid-2b { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; animation: fadeUp .4s ease .22s both; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 20px 22px; transition: box-shadow .2s; }
+.panel:hover { box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
+.panel-title { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+.panel-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.pill-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.pill { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--text3); cursor: pointer; transition: all .13s; }
+.pill.on { background: var(--primary-l); color: var(--primary-d); border-color: rgba(15,122,82,.25); font-weight: 500; }
+.pill:hover:not(.on) { color: var(--text); border-color: var(--border2); background: var(--surface2); }
+
+/* ── REGION BARS ── */
+.reg-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .13s; border-radius: 6px; padding-left: 6px; padding-right: 6px; }
+.reg-row:last-child { border-bottom: none; }
+.reg-row:hover { background: var(--surface2); }
+.rk { font-family: var(--mono); font-size: 10px; color: var(--text3); width: 14px; text-align: right; flex-shrink: 0; }
+.rn { font-size: 12px; color: var(--text); flex: 1; min-width: 0; }
+.bt { flex: 2; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.bf { height: 100%; border-radius: 3px; transition: width .6s ease; }
+.rv { font-family: var(--mono); font-size: 11px; color: var(--text3); min-width: 48px; text-align: right; }
+
+/* ── TABLE ── */
+.itable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.itable th { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); text-align: left; padding: 0 6px 10px; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+.itable th:last-child { text-align: right; }
+.itable th:hover { color: var(--text2); }
+.itable th.sort-asc::after { content: ' ↑'; }
+.itable th.sort-desc::after { content: ' ↓'; }
+.itable td { padding: 9px 6px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.itable tr:last-child td { border-bottom: none; }
+.itable td:last-child { text-align: right; }
+.itable tbody tr { transition: background .13s; cursor: default; }
+.itable tbody tr:hover { background: var(--surface2); }
+.tpill { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 500; }
+.tup { background: var(--primary-l); color: var(--primary-d); }
+.tdn { background: var(--amber-l); color: var(--amber); }
+
+/* ── CAUSE BARS ── */
+.cause-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .13s; border-radius: 6px; padding-left: 6px; padding-right: 6px; }
+.cause-row:last-child { border-bottom: none; }
+.cause-row:hover { background: var(--surface2); }
+.cn { font-size: 12px; color: var(--text); flex: 1.5; min-width: 0; }
+.cbar { flex: 2; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.cbf { height: 100%; border-radius: 3px; transition: width .6s ease; }
+.cpct { font-family: var(--mono); font-size: 11px; color: var(--text3); min-width: 30px; text-align: right; }
+
+/* ── COMPARE CARDS ── */
+.cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.cmp-card { background: var(--surface2); border-radius: var(--r-lg); padding: 13px 15px; border: 1px solid var(--border); transition: all .2s; cursor: default; }
+.cmp-card:hover { border-color: var(--border2); background: var(--surface3); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.06); }
+.cmp-label { font-family: var(--mono); font-size: 9px; letter-spacing: .09em; text-transform: uppercase; color: var(--text3); margin-bottom: 7px; }
+.cmp-val { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -.02em; }
+.cmp-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* ── FOOTER ── */
+.dash-footer { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; border-top: 1px solid var(--border); background: var(--surface); font-size: 11px; color: var(--text3); font-family: var(--mono); margin-top: 8px; flex-wrap: wrap; gap: 8px; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── PAGE VIEWS ── */
+.page-view { display: none; }
+.page-view.active { display: block; animation: fadeUp .35s ease both; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 28px; right: 28px; z-index: 999;
+  background: var(--text); color: #fff;
+  font-size: 13px; font-family: var(--sans);
+  padding: 11px 18px; border-radius: var(--r-lg);
+  box-shadow: 0 4px 20px rgba(0,0,0,.18);
+  transform: translateY(20px); opacity: 0;
+  transition: all .25s ease; pointer-events: none;
+  display: flex; align-items: center; gap: 8px; max-width: 320px;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast-icon { font-size: 15px; flex-shrink: 0; }
+
+/* ── MODAL ── */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(17,24,39,.45);
+  z-index: 800; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .22s;
+}
+.modal-bg.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--surface); border-radius: var(--r-xl);
+  border: 1px solid var(--border); width: 420px; max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  transform: translateY(12px) scale(.98);
+  transition: transform .22s ease, opacity .22s ease;
+  overflow: hidden;
+}
+.modal-bg.open .modal { transform: none; }
+.modal-head { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.modal-close { width: 26px; height: 26px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text2); transition: all .13s; }
+.modal-close:hover { background: var(--surface3); }
+.modal-body { padding: 20px 24px; }
+.modal-row { margin-bottom: 16px; }
+.modal-row label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+.modal-row select, .modal-row input[type="range"] { width: 100%; }
+.modal-row select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 12px; padding: 7px 10px; border-radius: var(--r-md); outline: none; }
+.modal-row select:focus { border-color: var(--primary); }
+.modal-check-group { display: flex; flex-direction: column; gap: 8px; }
+.modal-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer; }
+.modal-check input { accent-color: var(--primary); width: 14px; height: 14px; cursor: pointer; }
+.modal-foot { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+.modal-btn { padding: 7px 16px; border-radius: var(--r-md); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .13s; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); }
+.modal-btn:hover { background: var(--surface3); color: var(--text); }
+.modal-btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.modal-btn-primary:hover { background: var(--primary-d); border-color: var(--primary-d); }
+.range-row { display: flex; align-items: center; gap: 10px; }
+.range-row input[type="range"] { flex: 1; accent-color: var(--primary); }
+.range-val { font-family: var(--mono); font-size: 11px; color: var(--text3); min-width: 36px; text-align: right; }
+
+/* ── TOOLTIP ── */
+.chart-tooltip-wrapper { position: relative; }
+
+/* ── SEARCH BAR ── */
+.search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 5px 12px; margin-bottom: 16px; transition: border-color .13s;
+}
+.search-wrap:focus-within { border-color: var(--primary); }
+.search-wrap svg { width: 13px; height: 13px; stroke: var(--text3); stroke-width: 2; fill: none; flex-shrink: 0; }
+.search-wrap input { border: none; background: transparent; font-size: 12px; color: var(--text); outline: none; flex: 1; font-family: var(--sans); }
+.search-wrap input::placeholder { color: var(--text3); }
+
+/* TREND PAGE SPECIFIC */
+.trend-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; padding: 14px 16px; background: var(--surface2); border-radius: var(--r-lg); border: 1px solid var(--border); }
+.trend-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); }
+.trend-pill { font-family: var(--mono); font-size: 10px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text3); cursor: pointer; transition: all .13s; }
+.trend-pill.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+.trend-pill:hover:not(.on) { border-color: var(--border2); color: var(--text); }
+
+/* GLOBAL RANK TABLE */
+.rank-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rank-table th { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); text-align: left; padding: 0 8px 10px; border-bottom: 1px solid var(--border); }
+.rank-table td { padding: 9px 8px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.rank-table tr:last-child td { border-bottom: none; }
+.rank-table tbody tr { transition: background .13s; }
+.rank-table tbody tr:hover { background: var(--surface2); }
+.rank-table tbody tr.highlight { background: var(--primary-l); }
+.rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-family: var(--mono); font-size: 10px; font-weight: 600; background: var(--surface2); color: var(--text3); }
+.rank-badge.gold { background: #fef3c7; color: #b45309; }
+.rank-badge.silver { background: #f3f4f6; color: #6b7280; }
+.rank-badge.bronze { background: #fde8d8; color: #c2410c; }
+
+/* ABOUT PAGE */
+.about-section { margin-bottom: 24px; }
+.about-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; letter-spacing: -.01em; }
+.about-text { font-size: 13px; color: var(--text2); line-height: 1.7; }
+.source-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.source-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface2); border-radius: var(--r-md); border: 1px solid var(--border); font-size: 12px; color: var(--text2); }
+.source-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+
+/* PROGRESS RING */
+.progress-ring { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.ring-wrap { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
+.ring-wrap svg { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--surface2); stroke-width: 5; }
+.ring-fg { fill: none; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 138; transition: stroke-dashoffset .8s ease; }
+.ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text); }
+.ring-info { flex: 1; }
+.ring-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.ring-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* SDG PROGRESS */
+.sdg-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
+.sdg-card { background: var(--surface2); border-radius: var(--r-lg); padding: 14px; border: 1px solid var(--border); }
+.sdg-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.sdg-num { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--primary); }
+.sdg-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.sdg-bar { height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+.sdg-fill { height: 100%; border-radius: 3px; background: var(--primary); transition: width .8s ease; }
+.sdg-pct { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+/* ══ RESPONSIVE ══ */
+@media (max-width: 1100px) {
+  .content { padding: 20px 22px 60px; }
+  .topbar { padding: 0 22px; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 768px) {
+  #sidebar { transform: translateX(calc(-1 * var(--sw))); }
+  #sidebar.open { transform: translateX(0); }
+  #main { margin-left: 0; }
+  .hamburger { display: flex; }
+  .sb-close { display: flex; }
+  .topbar { padding: 0 14px; }
+  .bc-root, .bc-sep { display: none; }
+  .top-btn:not(.top-btn-primary) { display: none; }
+  .content { padding: 16px 14px 60px; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+  .kpi-val { font-size: 22px; }
+  .grid-2, .grid-3, .grid-2b { grid-template-columns: 1fr; }
+  .dash-footer { padding: 12px 14px; }
+  .sdg-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .cmp-grid { grid-template-columns: 1fr; }
+  .kpi-val { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<div class="flag-bar"></div>
+<div id="overlay"></div>
+
+<!-- ── TOAST ── -->
+<div id="toast"><span id="toast-icon">✓</span><span id="toast-msg">Done</span></div>
+
+<!-- ── FILTER MODAL ── -->
+<div class="modal-bg" id="filterModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Filter Options</div>
+      <button class="modal-close" onclick="closeModal('filterModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-row">
+        <label>Year Range</label>
+        <div class="range-row">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text3)">1990</span>
+          <input type="range" id="filterYear" min="1990" max="2024" step="5" value="2024" oninput="document.getElementById('filterYearVal').textContent=this.value">
+          <span class="range-val" id="filterYearVal">2024</span>
+        </div>
+      </div>
+      <div class="modal-row">
+        <label>Metric Focus</label>
+        <select id="filterMetric">
+          <option value="all">All Metrics</option>
+          <option value="le">Life Expectancy</option>
+          <option value="im">Infant Mortality</option>
+          <option value="fr">Fertility Rate</option>
+          <option value="pop">Population</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <label>Regions to Include</label>
+        <div class="modal-check-group">
+          <label class="modal-check"><input type="checkbox" checked id="fc-dhaka"> Dhaka Division</label>
+          <label class="modal-check"><input type="checkbox" checked id="fc-chitt"> Chittagong Division</label>
+          <label class="modal-check"><input type="checkbox" checked id="fc-rajsh"> Rajshahi Division</label>
+          <label class="modal-check"><input type="checkbox" checked id="fc-khulna"> Khulna Division</label>
+          <label class="modal-check"><input type="checkbox" id="fc-others"> Other Divisions</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="resetFilters()">Reset</button>
+      <button class="modal-btn modal-btn-primary" onclick="applyFilters()">Apply Filters</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SIDEBAR ── -->
+<aside id="sidebar">
+  <button class="sb-close" id="sbClose">&#x2715;</button>
+  <div class="sb-head">
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <div class="logo-text">
+        <div class="logo-name">Health<span>Metrics</span> BD</div>
+        <div class="logo-sub">Bangladesh Health Data</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-body">
+    <div class="nav-group">Overview</div>
+    <div class="nav-item active" data-page="dashboard" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 8a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm8-8a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1V4zm0 8a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-3z"/></svg>
+      Dashboard
+      <span class="nav-badge">Live</span>
+    </div>
+    <div class="nav-item" data-page="trend" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+      Trend Analysis
+    </div>
+
+    <div class="nav-group">Health Indicators</div>
+    <div class="nav-item" data-page="mortality" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+      Mortality
+    </div>
+    <div class="nav-item" data-page="fertility" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+      Fertility
+    </div>
+    <div class="nav-item" data-page="disease" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+      Disease Burden
+    </div>
+    <div class="nav-item" data-page="population" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z"/><path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z"/><path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z"/></svg>
+      Population Data
+    </div>
+
+    <div class="nav-group">Comparison</div>
+    <div class="nav-item" data-page="southasia" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/></svg>
+      South Asia
+    </div>
+    <div class="nav-item" data-page="globalrank" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z"/></svg>
+      Global Rank
+    </div>
+    <div class="nav-item" data-page="about" onclick="navClick(this)">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+      About
+    </div>
+  </div>
+
+  <div class="sb-foot">
+    <div class="sb-foot-user">
+      <div class="user-avatar">BD</div>
+      <div>
+        <div class="user-name">Admin User</div>
+        <div class="user-role">Health Analyst</div>
+      </div>
+    </div>
+    <div class="live-row">
+      <span class="live-dot"></span>
+      WHO · World Bank · UN DESA · 2024
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div id="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" id="hamburger">
+        <svg viewBox="0 0 16 16"><line x1="1" y1="4" x2="15" y2="4"/><line x1="1" y1="8" x2="15" y2="8"/><line x1="1" y1="12" x2="15" y2="12"/></svg>
+      </button>
+      <div class="breadcrumb">
+        <span class="bc-root">HealthMetrics BD</span>
+        <span class="bc-sep">/</span>
+        <span class="bc-page" id="bcPage">Dashboard</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <select class="top-select" id="yrSel" onchange="changeYear(this.value)">
+        <option>2024</option><option>2020</option><option>2015</option>
+        <option>2010</option><option>2000</option><option>1990</option>
+      </select>
+      <button class="top-btn" onclick="openModal('filterModal')">
+        <svg viewBox="0 0 16 16"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+        Filter
+      </button>
+      <button class="top-btn top-btn-primary" onclick="exportData()">
+        <svg viewBox="0 0 16 16"><path d="M8 2v8M4 7l4 4 4-4M2 13h12"/></svg>
+        Export
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════ DASHBOARD PAGE ═══════ -->
+  <main class="content">
+    <div class="page-view active" id="page-dashboard">
+
+      <div class="page-hdr">
+        <div class="page-title">
+          <div class="flag-mini"><div class="fm-g"></div><div class="fm-r"><div class="fm-c"></div></div></div>
+          Bangladesh — Health &amp; Population Overview
+        </div>
+        <div class="page-sub">Comprehensive national health statistics and demographic trends, 1990–2024</div>
+        <div class="page-tags">
+          <span class="tag green">South Asia</span>
+          <span class="tag">173.6M Population</span>
+          <span class="tag">WHO Data</span>
+          <span class="tag">Updated 2024</span>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi" style="animation-delay:0s">
+          <div class="kpi-accent"></div>
+          <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+          <div class="kpi-label">Population</div>
+          <div class="kpi-val" id="k-pop">173.6M</div>
+          <div class="kpi-delta"><span class="delta-up" id="k-pop-d">↑ +1.22%</span> annual growth rate</div>
+        </div>
+        <div class="kpi" style="animation-delay:.05s">
+          <div class="kpi-accent"></div>
+          <div class="kpi-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="kpi-label">Life Expectancy</div>
+          <div class="kpi-val" id="k-le">74.9 yrs</div>
+          <div class="kpi-delta"><span class="delta-up">↑ +15.7 yrs</span> since 1990</div>
+        </div>
+        <div class="kpi" style="animation-delay:.1s">
+          <div class="kpi-accent"></div>
+          <div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+          <div class="kpi-label">Infant Mortality</div>
+          <div class="kpi-val" id="k-im">20.8</div>
+          <div class="kpi-delta"><span class="delta-up">↓ −83%</span> per 1,000 since 1990</div>
+        </div>
+        <div class="kpi" style="animation-delay:.15s">
+          <div class="kpi-accent"></div>
+          <div class="kpi-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div class="kpi-label">Fertility Rate</div>
+          <div class="kpi-val" id="k-fr">1.91</div>
+          <div class="kpi-delta"><span class="delta-dn">↓ from 4.4</span> in 1990</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Key health trends, 1990–2024</div>
+              <div class="panel-sub">Bangladesh national data · toggle metric below</div>
+            </div>
+            <div class="pill-row" id="mpills">
+              <button class="pill on" onclick="setM('le',this)">Life exp.</button>
+              <button class="pill" onclick="setM('im',this)">Infant mortality</button>
+              <button class="pill" onclick="setM('fr',this)">Fertility</button>
+            </div>
+          </div>
+          <div style="position:relative;width:100%;height:220px"><canvas id="trendC"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">South Asia comparison</div>
+              <div class="panel-sub">Life expectancy at birth, 2024</div>
+            </div>
+          </div>
+          <div id="saList"></div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Age structure</div><div class="panel-sub">% by group, 2024</div></div></div>
+          <div style="position:relative;width:100%;height:200px"><canvas id="ageC"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Causes of death</div><div class="panel-sub">% of total, est. 2021</div></div>
+            <div class="search-wrap" style="margin-bottom:0;flex:1;max-width:160px">
+              <svg viewBox="0 0 16 16"><circle cx="6" cy="6" r="4"/><path d="M10 10l3 3"/></svg>
+              <input type="text" placeholder="Search..." id="causeSearch" oninput="filterCauses(this.value)">
+            </div>
+          </div>
+          <div id="causeList"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">1990 vs 2024</div><div class="panel-sub">Key health indicators</div></div></div>
+          <table class="itable" id="compTable">
+            <thead><tr>
+              <th onclick="sortTable(0)">Indicator</th>
+              <th onclick="sortTable(1)">1990</th>
+              <th onclick="sortTable(2)">2024</th>
+              <th onclick="sortTable(3)">Change</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>Life exp.</td><td style="color:var(--text3);font-family:var(--mono)">59.2</td><td style="font-family:var(--mono)">74.9</td><td><span class="tpill tup">↑ +15.7</span></td></tr>
+              <tr><td>Infant mort.</td><td style="color:var(--text3);font-family:var(--mono)">120</td><td style="font-family:var(--mono)">20.8</td><td><span class="tpill tup">↓ −83%</span></td></tr>
+              <tr><td>Fertility</td><td style="color:var(--text3);font-family:var(--mono)">4.4</td><td style="font-family:var(--mono)">1.91</td><td><span class="tpill tdn">↓ −57%</span></td></tr>
+              <tr><td>Urban pop.</td><td style="color:var(--text3);font-family:var(--mono)">20%</td><td style="font-family:var(--mono)">42%</td><td><span class="tpill tup">↑ +22pp</span></td></tr>
+              <tr><td>Health exp.</td><td style="color:var(--text3);font-family:var(--mono)">1.5%</td><td style="font-family:var(--mono)">2.4%</td><td><span class="tpill tup">↑ +0.9pp</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2b">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Bangladesh vs global average</div><div class="panel-sub">Selected indicators, 2024</div></div></div>
+          <div class="cmp-grid">
+            <div class="cmp-card"><div class="cmp-label">Life expectancy</div><div class="cmp-val">74.9</div><div class="cmp-sub" style="color:var(--primary)">↑ Above global avg (73.4)</div></div>
+            <div class="cmp-card"><div class="cmp-label">Fertility rate</div><div class="cmp-val">1.91</div><div class="cmp-sub" style="color:var(--primary)">↓ Below global avg (2.31)</div></div>
+            <div class="cmp-card"><div class="cmp-label">Infant mortality</div><div class="cmp-val">20.8</div><div class="cmp-sub" style="color:var(--primary)">↓ Better than S. Asia avg</div></div>
+            <div class="cmp-card"><div class="cmp-label">Pop. density</div><div class="cmp-val">1,333/km²</div><div class="cmp-sub" style="color:var(--amber)">8th most dense globally</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Rural vs urban split</div><div class="panel-sub">Population distribution over time</div></div></div>
+          <div style="position:relative;width:100%;height:175px"><canvas id="ruralC"></canvas></div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+    <!-- ═══════ TREND ANALYSIS PAGE ═══════ -->
+    <div class="page-view" id="page-trend">
+      <div class="page-hdr">
+        <div class="page-title">Trend Analysis</div>
+        <div class="page-sub">Multi-metric health trends over time with projection</div>
+      </div>
+      <div class="trend-controls">
+        <span class="trend-label">Metrics:</span>
+        <button class="trend-pill on" onclick="toggleTrendLine('le',this)">Life Expectancy</button>
+        <button class="trend-pill on" onclick="toggleTrendLine('im',this)">Infant Mortality</button>
+        <button class="trend-pill on" onclick="toggleTrendLine('fr',this)">Fertility Rate</button>
+        <button class="trend-pill on" onclick="toggleTrendLine('pop',this)">Population</button>
+      </div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="panel-head"><div><div class="panel-title">All indicators, 1990–2024</div><div class="panel-sub">Normalised to 0–100 scale for comparison</div></div></div>
+        <div style="position:relative;width:100%;height:280px"><canvas id="multiTrendC"></canvas></div>
+      </div>
+      <div class="grid-2b">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Annual growth rate</div><div class="panel-sub">Population year-over-year %</div></div></div>
+          <div style="position:relative;width:100%;height:180px"><canvas id="growthC"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Decade milestones</div><div class="panel-sub">Key achievements per decade</div></div></div>
+          <div style="margin-top:4px">
+            <div class="cause-row" style="cursor:default">
+              <div style="width:48px;font-family:var(--mono);font-size:10px;color:var(--primary);font-weight:600">1990s</div>
+              <div style="flex:1;font-size:12px;color:var(--text2)">ORS adoption reduces child mortality by 30%. Major NGO health expansion.</div>
+            </div>
+            <div class="cause-row" style="cursor:default">
+              <div style="width:48px;font-family:var(--mono);font-size:10px;color:var(--blue);font-weight:600">2000s</div>
+              <div style="flex:1;font-size:12px;color:var(--text2)">Community health worker program launches. Life expectancy crosses 64 years.</div>
+            </div>
+            <div class="cause-row" style="cursor:default">
+              <div style="width:48px;font-family:var(--mono);font-size:10px;color:var(--purple);font-weight:600">2010s</div>
+              <div style="flex:1;font-size:12px;color:var(--text2)">Infant mortality halved. Universal healthcare initiative begins. GDP doubled.</div>
+            </div>
+            <div class="cause-row" style="cursor:default;border-bottom:none">
+              <div style="width:48px;font-family:var(--mono);font-size:10px;color:var(--amber);font-weight:600">2020s</div>
+              <div style="flex:1;font-size:12px;color:var(--text2)">COVID-19 resilience, fertility drops below replacement. Life exp. nears 75.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ MORTALITY PAGE ═══════ -->
+    <div class="page-view" id="page-mortality">
+      <div class="page-hdr">
+        <div class="page-title">Mortality Indicators</div>
+        <div class="page-sub">Child, infant and adult mortality rates — Bangladesh 1990–2024</div>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi"><div class="kpi-accent"></div><div class="kpi-label">Infant Mortality Rate</div><div class="kpi-val">20.8</div><div class="kpi-delta"><span class="delta-up">per 1,000 live births</span></div></div>
+        <div class="kpi"><div class="kpi-accent" style="--ka:var(--blue)"></div><div class="kpi-label">Under-5 Mortality</div><div class="kpi-val">28.2</div><div class="kpi-delta"><span class="delta-up">↓ −87% since 1990</span></div></div>
+        <div class="kpi"><div class="kpi-accent" style="--ka:var(--amber)"></div><div class="kpi-label">Maternal Mortality</div><div class="kpi-val">123</div><div class="kpi-delta"><span class="delta-up">per 100,000 live births</span></div></div>
+      </div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="panel-head"><div><div class="panel-title">Mortality trends over time</div><div class="panel-sub">All age-group rates declining steadily</div></div></div>
+        <div style="position:relative;width:100%;height:260px"><canvas id="mortC"></canvas></div>
+      </div>
+      <div class="grid-2b">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Leading causes of death</div><div class="panel-sub">% share, 2021 estimate</div></div></div>
+          <div style="position:relative;width:100%;height:200px"><canvas id="causeDonutC"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">SDG 3 Progress</div><div class="panel-sub">Health-related sustainable development goals</div></div></div>
+          <div class="sdg-grid" id="sdgGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ FERTILITY PAGE ═══════ -->
+    <div class="page-view" id="page-fertility">
+      <div class="page-hdr">
+        <div class="page-title">Fertility &amp; Demographics</div>
+        <div class="page-sub">Fertility rate, birth rate and demographic transition data</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-accent"></div><div class="kpi-label">Fertility Rate (TFR)</div><div class="kpi-val">1.91</div><div class="kpi-delta"><span class="delta-up">Below replacement (2.1)</span></div></div>
+        <div class="kpi"><div class="kpi-accent" style="--ka:var(--blue)"></div><div class="kpi-label">Crude Birth Rate</div><div class="kpi-val">18.2</div><div class="kpi-delta"><span class="delta-up">per 1,000 people</span></div></div>
+        <div class="kpi"><div class="kpi-accent" style="--ka:var(--amber)"></div><div class="kpi-label">Contraceptive Use</div><div class="kpi-val">77.6%</div><div class="kpi-delta"><span class="delta-up">↑ from 31% in 1990</span></div></div>
+        <div class="kpi"><div class="kpi-accent" style="--ka:var(--purple)"></div><div class="kpi-label">Median Age</div><div class="kpi-val">28.4</div><div class="kpi-delta"><span class="delta-up">↑ from 17.5 in 1990</span></div></div>
+      </div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="panel-head"><div><div class="panel-title">Fertility rate decline, 1990–2024</div><div class="panel-sub">One of South Asia's most dramatic demographic transitions</div></div></div>
+        <div style="position:relative;width:100%;height:240px"><canvas id="fertC"></canvas></div>
+      </div>
+      <div class="grid-2b">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Age at first marriage</div><div class="panel-sub">Women, % by age group 2024</div></div></div>
+          <div style="position:relative;width:100%;height:180px"><canvas id="marriageC"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Birth rate by division</div><div class="panel-sub">2024 crude birth rate per 1,000</div></div></div>
+          <div style="position:relative;width:100%;height:180px"><canvas id="divisionC"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ DISEASE BURDEN PAGE ═══════ -->
+    <div class="page-view" id="page-disease">
+      <div class="page-hdr">
+        <div class="page-title">Disease Burden</div>
+        <div class="page-sub">Communicable and non-communicable disease prevalence and trends</div>
+      </div>
+      <div class="grid-2b" style="margin-bottom:14px">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">NCD vs communicable disease split</div><div class="panel-sub">% of DALYs, 2021</div></div></div>
+          <div style="position:relative;width:100%;height:200px"><canvas id="ncdC"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Top disease categories</div><div class="panel-sub">Disability-adjusted life years (DALYs)</div></div></div>
+          <div id="diseaseList" style="margin-top:4px"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Key disease indicators</div><div class="panel-sub">Prevalence and control metrics, 2024</div></div></div>
+        <table class="itable">
+          <thead><tr><th>Disease</th><th>Prevalence</th><th>Trend</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Hypertension</td><td style="font-family:var(--mono)">27.2%</td><td>↑ Rising</td><td><span class="tpill tdn">Alert</span></td></tr>
+            <tr><td>Diabetes (Type 2)</td><td style="font-family:var(--mono)">14.2%</td><td>↑ Rising</td><td><span class="tpill tdn">Alert</span></td></tr>
+            <tr><td>Tuberculosis</td><td style="font-family:var(--mono)">221/100k</td><td>↓ Falling</td><td><span class="tpill tup">Improving</span></td></tr>
+            <tr><td>Malaria</td><td style="font-family:var(--mono)">0.4/1k</td><td>↓ Falling</td><td><span class="tpill tup">Near-eliminated</span></td></tr>
+            <tr><td>Arsenic poisoning</td><td style="font-family:var(--mono)">~20M exp.</td><td>→ Stable</td><td><span class="tpill tdn">Ongoing</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════ POPULATION DATA PAGE ═══════ -->
+    <div class="page-view" id="page-population">
+      <div class="page-hdr">
+        <div class="page-title">Population Data</div>
+        <div class="page-sub">Total population, density, urbanisation and age structure</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-accent"></div><div class="kpi-label">Total Population</div><div class="kpi-val">173.6M</div><div class="kpi-delta"><span class="delta-up">8th largest worldwide</span></div></div>
+        <div class="kpi"><div class="kpi-accent" style="--ka:var(--blue)"></div><div class="kpi-label">Pop. Density</div><div class="kpi-val">1,333</div><div class="kpi-delta"><span class="delta-up">per km² (8th globally)</span></div></div>
+        <div class="kpi"><div class="kpi-accent" style="--ka:var(--amber)"></div><div class="kpi-label">Urban Population</div><div class="kpi-val">42%</div><div class="kpi-delta"><span class="delta-up">↑ from 20% in 1990</span></div></div>
+        <div class="kpi"><div class="kpi-accent" style="--ka:var(--purple)"></div><div class="kpi-label">Annual Growth</div><div class="kpi-val">1.22%</div><div class="kpi-delta"><span class="delta-up">Slowing from 2.5% in 1990</span></div></div>
+      </div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="panel-head"><div><div class="panel-title">Population growth, 1990–2024</div><div class="panel-sub">Total population in millions</div></div></div>
+        <div style="position:relative;width:100%;height:240px"><canvas id="popGrowthC"></canvas></div>
+      </div>
+      <div class="grid-2b">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Population by division</div><div class="panel-sub">2024 estimate (millions)</div></div></div>
+          <div style="position:relative;width:100%;height:200px"><canvas id="divPopC"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Urban migration trend</div><div class="panel-sub">Rural vs urban %, 1990–2024</div></div></div>
+          <div style="position:relative;width:100%;height:200px"><canvas id="ruralC2"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SOUTH ASIA PAGE ═══════ -->
+    <div class="page-view" id="page-southasia">
+      <div class="page-hdr">
+        <div class="page-title">South Asia Comparison</div>
+        <div class="page-sub">Bangladesh vs neighbouring countries across key health metrics</div>
+      </div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="panel-head">
+          <div><div class="panel-title">Comparative health metrics</div><div class="panel-sub">Select a metric to compare</div></div>
+          <div class="pill-row" id="saPills">
+            <button class="pill on" onclick="setSaMetric('le',this)">Life exp.</button>
+            <button class="pill" onclick="setSaMetric('im',this)">Infant mort.</button>
+            <button class="pill" onclick="setSaMetric('fr',this)">Fertility</button>
+            <button class="pill" onclick="setSaMetric('gdp',this)">Health spend</button>
+          </div>
+        </div>
+        <div style="position:relative;width:100%;height:260px"><canvas id="saBarC"></canvas></div>
+      </div>
+      <div class="grid-2b">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Life expectancy ranking</div><div class="panel-sub">South Asia, 2024</div></div></div>
+          <div id="saList2"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Bangladesh progress vs. region</div><div class="panel-sub">Improvement since 1990 (percentage points)</div></div></div>
+          <div style="position:relative;width:100%;height:200px"><canvas id="saProgressC"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ GLOBAL RANK PAGE ═══════ -->
+    <div class="page-view" id="page-globalrank">
+      <div class="page-hdr">
+        <div class="page-title">Global Rankings</div>
+        <div class="page-sub">Bangladesh's position among world nations on key health indicators</div>
+      </div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 16 16"><circle cx="6" cy="6" r="4"/><path d="M10 10l3 3"/></svg>
+        <input type="text" placeholder="Search countries..." id="rankSearch" oninput="filterRankTable(this.value)">
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Life expectancy — Global ranking</div><div class="panel-sub">Out of 195 countries, 2024 · Bangladesh highlighted</div></div>
+        </div>
+        <table class="rank-table" id="rankTable">
+          <thead><tr><th>Rank</th><th>Country</th><th>Life Exp.</th><th>Change vs 1990</th></tr></thead>
+          <tbody id="rankBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════ ABOUT PAGE ═══════ -->
+    <div class="page-view" id="page-about">
+      <div class="page-hdr">
+        <div class="page-title">About HealthMetrics BD</div>
+        <div class="page-sub">Data sources, methodology and platform information</div>
+      </div>
+      <div class="grid-2b">
+        <div>
+          <div class="about-section">
+            <div class="about-title">What is HealthMetrics BD?</div>
+            <div class="about-text">HealthMetrics BD is a comprehensive dashboard for tracking Bangladesh's health and demographic indicators. It aggregates data from authoritative international sources to provide analysts, researchers, and policymakers with clear, actionable insights into the nation's health trajectory.</div>
+          </div>
+          <div class="about-section">
+            <div class="about-title">Key Achievements Tracked</div>
+            <div class="about-text">Bangladesh is internationally recognised as a health development success story — dramatically reducing infant and maternal mortality, lowering fertility rates, and increasing life expectancy faster than most comparable nations, often despite lower GDP per capita.</div>
+          </div>
+          <div class="about-section">
+            <div class="about-title">Data Sources</div>
+            <div class="source-list">
+              <div class="source-item"><div class="source-dot"></div><strong>WHO</strong> — World Health Statistics, Global Health Observatory</div>
+              <div class="source-item"><div class="source-dot" style="background:var(--blue)"></div><strong>World Bank</strong> — World Development Indicators</div>
+              <div class="source-item"><div class="source-dot" style="background:var(--purple)"></div><strong>UN DESA</strong> — World Population Prospects 2024</div>
+              <div class="source-item"><div class="source-dot" style="background:var(--amber)"></div><strong>Worldometer</strong> — Real-time population estimates</div>
+              <div class="source-item"><div class="source-dot" style="background:var(--red)"></div><strong>ICDDR,B</strong> — Bangladesh health research</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="about-section">
+            <div class="about-title">Platform Info</div>
+            <div class="about-text" style="margin-bottom:12px">Version 2.0 · Data updated Q4 2024 · All figures are estimates based on latest available official data.</div>
+            <div class="panel" style="padding:16px">
+              <div class="progress-ring">
+                <div class="ring-wrap">
+                  <svg viewBox="0 0 52 52"><circle class="ring-bg" cx="26" cy="26" r="22"/><circle class="ring-fg" cx="26" cy="26" r="22" stroke="#0f7a52" style="stroke-dashoffset:28"/></svg>
+                  <div class="ring-label">80%</div>
+                </div>
+                <div class="ring-info"><div class="ring-name">Data completeness</div><div class="ring-sub">Indicators with full time series</div></div>
+              </div>
+              <div class="progress-ring">
+                <div class="ring-wrap">
+                  <svg viewBox="0 0 52 52"><circle class="ring-bg" cx="26" cy="26" r="22"/><circle class="ring-fg" cx="26" cy="26" r="22" stroke="#1d6fb8" style="stroke-dashoffset:55"/></svg>
+                  <div class="ring-label">60%</div>
+                </div>
+                <div class="ring-info"><div class="ring-name">SDG targets on track</div><div class="ring-sub">Health-related SDG 3 goals</div></div>
+              </div>
+              <div class="progress-ring" style="margin-bottom:0">
+                <div class="ring-wrap">
+                  <svg viewBox="0 0 52 52"><circle class="ring-bg" cx="26" cy="26" r="22"/><circle class="ring-fg" cx="26" cy="26" r="22" stroke="#6d28d9" style="stroke-dashoffset:14"/></svg>
+                  <div class="ring-label">90%</div>
+                </div>
+                <div class="ring-info"><div class="ring-name">Source verification</div><div class="ring-sub">Data cross-checked with 2+ sources</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="dash-footer">
+    <span>HealthMetrics BD &copy; 2024 &mdash; Bangladesh Health Data Platform</span>
+    <span>Sources: WHO · World Bank · UN DESA · Worldometer</span>
+  </footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   SIDEBAR & NAVIGATION
+══════════════════════════════════════════════ */
+var sidebar   = document.getElementById('sidebar');
+var overlay   = document.getElementById('overlay');
+var hamburger = document.getElementById('hamburger');
+var sbClose   = document.getElementById('sbClose');
+
+function openSidebar()  { sidebar.classList.add('open'); overlay.classList.add('open'); if(window.innerWidth<=768) document.body.style.overflow='hidden'; }
+function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); document.body.style.overflow=''; }
+hamburger.addEventListener('click', openSidebar);
+sbClose.addEventListener('click', closeSidebar);
+overlay.addEventListener('click', closeSidebar);
+window.addEventListener('resize', function(){ if(window.innerWidth>768) closeSidebar(); });
+
+var pageNames = {
+  dashboard: 'Dashboard', trend: 'Trend Analysis', mortality: 'Mortality',
+  fertility: 'Fertility', disease: 'Disease Burden', population: 'Population Data',
+  southasia: 'South Asia', globalrank: 'Global Rank', about: 'About'
+};
+var pageInited = {};
+
+function navClick(el) {
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  el.classList.add('active');
+  var page = el.dataset.page;
+  document.querySelectorAll('.page-view').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('bcPage').textContent = pageNames[page] || page;
+  if(window.innerWidth<=768) closeSidebar();
+  if(!pageInited[page]) { initPage(page); pageInited[page]=true; }
+}
+
+function initPage(page) {
+  if(page==='trend')      buildTrendPage();
+  if(page==='mortality')  buildMortalityPage();
+  if(page==='fertility')  buildFertilityPage();
+  if(page==='disease')    buildDiseasePage();
+  if(page==='population') buildPopulationPage();
+  if(page==='southasia')  buildSouthAsiaPage();
+  if(page==='globalrank') buildGlobalRankPage();
+}
+
+/* ═══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+function showToast(msg, icon) {
+  var t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = icon || '✓';
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+/* ═══════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════════ */
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.getElementById('filterModal').addEventListener('click', function(e){ if(e.target===this) closeModal('filterModal'); });
+
+function applyFilters() {
+  var y = document.getElementById('filterYear').value;
+  var m = document.getElementById('filterMetric').value;
+  closeModal('filterModal');
+  if(m==='le')  { setM('le', document.querySelectorAll('#mpills .pill')[0]); }
+  if(m==='im')  { setM('im', document.querySelectorAll('#mpills .pill')[1]); }
+  if(m==='fr')  { setM('fr', document.querySelectorAll('#mpills .pill')[2]); }
+  document.getElementById('yrSel').value = y;
+  changeYear(y);
+  showToast('Filters applied for '+y, '🔍');
+}
+
+function resetFilters() {
+  document.getElementById('filterYear').value = '2024';
+  document.getElementById('filterYearVal').textContent = '2024';
+  document.getElementById('filterMetric').value = 'all';
+  ['fc-dhaka','fc-chitt','fc-rajsh','fc-khulna'].forEach(function(id){ document.getElementById(id).checked=true; });
+  document.getElementById('fc-others').checked = false;
+  showToast('Filters reset', '↺');
+  closeModal('filterModal');
+}
+
+/* ═══════════════════════════════════════════
+   EXPORT
+══════════════════════════════════════════════ */
+function exportData() {
+  var rows = [['Year','Population','Life Expectancy','Infant Mortality','Fertility Rate']];
+  var years = [1990,1995,2000,2005,2010,2015,2020,2024];
+  var pop  = [107.1,120.4,129.2,140.5,148.4,159.7,169.4,173.6];
+  var le   = [59.2,61.5,64.0,66.3,68.9,71.2,72.6,74.9];
+  var im   = [120,96,74,58,42,32,24,20.8];
+  var fr   = [4.4,3.8,3.2,2.8,2.4,2.18,2.18,1.91];
+  years.forEach(function(y,i){ rows.push([y,pop[i]+'M',le[i]+' yrs',im[i],fr[i]]); });
+  var csv = rows.map(function(r){ return r.join(','); }).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'HealthMetrics_BD_2024.csv';
+  a.click();
+  showToast('CSV exported successfully', '⬇');
+}
+
+/* ═══════════════════════════════════════════
+   CHARTS SHARED CONFIG
+══════════════════════════════════════════════ */
+var YEARS = [1990,1995,2000,2005,2010,2015,2020,2024];
+var GRID  = 'rgba(0,0,0,0.055)';
+var TICK  = '#9ca3af';
+var TIP   = { backgroundColor:'#fff', borderColor:'#e2e5ec', borderWidth:1, titleColor:'#6b7280', bodyColor:'#111827', padding:10, titleFont:{size:10}, bodyFont:{size:12} };
+
+var mData = {
+  le:  { label:'Life expectancy (years)',       data:[59.2,61.5,64.0,66.3,68.9,71.2,72.6,74.9], color:'#0f7a52' },
+  im:  { label:'Infant mortality (per 1,000)',  data:[120,96,74,58,42,32,24,20.8],              color:'#b45309' },
+  fr:  { label:'Fertility rate (births/woman)', data:[4.4,3.8,3.2,2.8,2.4,2.18,2.18,1.91],     color:'#6d28d9' },
+  pop: { label:'Population (millions)',         data:[107.1,120.4,129.2,140.5,148.4,159.7,169.4,173.6], color:'#1d6fb8' }
+};
+
+/* ── DASHBOARD TREND CHART ── */
+var trendChart;
+function buildTrend(key) {
+  var m = mData[key];
+  var ctx = document.getElementById('trendC').getContext('2d');
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:YEARS, datasets:[{ label:'Bangladesh', data:m.data,
+      borderColor:m.color, backgroundColor:m.color.replace(')',', 0.07)').replace('rgb','rgba').replace('#','rgba(').slice(0,-1)+', 0.07)',
+      fill:true, tension:0.4, pointRadius:3, pointHoverRadius:6, borderWidth:2, pointBackgroundColor:m.color }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:TIP },
+      scales:{
+        x:{ grid:{color:GRID}, ticks:{color:TICK, font:{size:11}} },
+        y:{ grid:{color:GRID}, ticks:{color:TICK, font:{size:11}, callback:function(v){return parseFloat(v.toFixed(1))}},
+          title:{display:true, text:m.label, color:TICK, font:{size:10}} }
+      }
+    }
+  });
+}
+
+// Fix fill color helper
+function hexToRgba(hex, a) {
+  var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+
+function buildTrendFixed(key) {
+  var m = mData[key];
+  var ctx = document.getElementById('trendC').getContext('2d');
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:YEARS, datasets:[{ label:'Bangladesh', data:m.data,
+      borderColor:m.color, backgroundColor:hexToRgba(m.color,.07),
+      fill:true, tension:0.4, pointRadius:3, pointHoverRadius:6, borderWidth:2, pointBackgroundColor:m.color }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:TIP },
+      scales:{
+        x:{ grid:{color:GRID}, ticks:{color:TICK, font:{size:11}} },
+        y:{ grid:{color:GRID}, ticks:{color:TICK, font:{size:11}, callback:function(v){return parseFloat(v.toFixed(1))}},
+          title:{display:true, text:m.label, color:TICK, font:{size:10}} }
+      }
+    }
+  });
+}
+buildTrendFixed('le');
+
+function setM(k, btn) {
+  document.querySelectorAll('#mpills .pill').forEach(function(p){ p.classList.remove('on'); });
+  btn.classList.add('on');
+  buildTrendFixed(k);
+}
+
+/* ── SOUTH ASIA BARS (dashboard) ── */
+var saData = [
+  {name:'Sri Lanka',  val:77.0, pct:100, c:'#1d6fb8'},
+  {name:'Bangladesh', val:74.9, pct:97,  c:'#0f7a52'},
+  {name:'India',      val:71.4, pct:93,  c:'#6d28d9'},
+  {name:'Nepal',      val:71.0, pct:92,  c:'#b45309'},
+  {name:'Bhutan',     val:70.6, pct:92,  c:'#9ca3af'},
+  {name:'Pakistan',   val:68.4, pct:89,  c:'#b91c1c'},
+];
+var sl = document.getElementById('saList');
+saData.forEach(function(r,i) {
+  var bd = r.name==='Bangladesh';
+  var row = document.createElement('div');
+  row.className = 'reg-row';
+  if(bd) row.style.cssText='background:var(--primary-l);border-radius:var(--r-md);padding-left:10px;padding-right:6px;margin:0 -4px;';
+  row.innerHTML = '<span class="rk">'+(i+1)+'</span>'
+    +'<span class="rn"'+(bd?' style="color:var(--primary-d);font-weight:600"':'')+'>'+r.name+(bd?' ▴':'')+'</span>'
+    +'<div class="bt"><div class="bf" style="width:0%;background:'+r.c+'"></div></div>'
+    +'<span class="rv">'+r.val+' yrs</span>';
+  row.addEventListener('click', function(){ showToast(r.name+': '+r.val+' yrs life expectancy', '📊'); });
+  sl.appendChild(row);
+  setTimeout(function(){ row.querySelector('.bf').style.width=r.pct+'%'; }, 300+i*80);
+});
+
+/* ── AGE DOUGHNUT ── */
+new Chart(document.getElementById('ageC').getContext('2d'), {
+  type:'doughnut',
+  data:{ labels:['0–14 yrs','15–24 yrs','25–54 yrs','55–64 yrs','65+ yrs'],
+    datasets:[{ data:[26,18,40,9,7], backgroundColor:['#0f7a52','#1d6fb8','#6d28d9','#b45309','#9ca3af'], borderWidth:3, borderColor:'#ffffff', hoverOffset:5 }]
+  },
+  options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
+    plugins:{ legend:{display:true, position:'right', labels:{color:'#6b7280', font:{size:10}, boxWidth:10, padding:9}},
+      tooltip:{ ...TIP, callbacks:{label:function(c){return ' '+c.label+': '+c.parsed+'%'}}}
+    }
+  }
+});
+
+/* ── CAUSES OF DEATH (dashboard) ── */
+var causes = [
+  {name:'Cardiovascular disease', pct:30, c:'#b91c1c'},
+  {name:'Respiratory disease',    pct:14, c:'#b45309'},
+  {name:'Cancer',                 pct:12, c:'#6d28d9'},
+  {name:'Diabetes',               pct: 8, c:'#1d6fb8'},
+  {name:'Diarrhoeal disease',     pct: 6, c:'#0f7a52'},
+  {name:'Neonatal conditions',    pct: 5, c:'#9ca3af'},
+];
+var allCauses = causes;
+function renderCauses(list) {
+  var cl = document.getElementById('causeList');
+  cl.innerHTML = '';
+  list.forEach(function(c) {
+    var row = document.createElement('div');
+    row.className = 'cause-row';
+    row.innerHTML = '<span class="cn">'+c.name+'</span><div class="cbar"><div class="cbf" style="width:0%;background:'+c.c+'"></div></div><span class="cpct">'+c.pct+'%</span>';
+    row.addEventListener('click', function(){ showToast(c.name+': '+c.pct+'% of deaths', '💉'); });
+    cl.appendChild(row);
+    setTimeout(function(){ row.querySelector('.cbf').style.width=((c.pct/30)*100)+'%'; }, 100);
+  });
+}
+renderCauses(causes);
+function filterCauses(q) {
+  renderCauses(q ? allCauses.filter(function(c){ return c.name.toLowerCase().includes(q.toLowerCase()); }) : allCauses);
+}
+
+/* ── RURAL/URBAN CHART ── */
+new Chart(document.getElementById('ruralC').getContext('2d'), {
+  type:'bar',
+  data:{ labels:['1990','2000','2010','2015','2020','2024'],
+    datasets:[
+      {label:'Urban', data:[20,23,30,34,38,42], backgroundColor:'#0f7a52', borderRadius:4, borderWidth:0, stack:'s'},
+      {label:'Rural', data:[80,77,70,66,62,58], backgroundColor:'#d1ead9', borderRadius:4, borderWidth:0, stack:'s'}
+    ]
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:true, position:'top', align:'end', labels:{color:TICK, font:{size:11}, boxWidth:10, padding:10}},
+      tooltip:{...TIP, callbacks:{label:function(c){return ' '+c.dataset.label+': '+Math.round(c.parsed.y)+'%'}}}
+    },
+    scales:{ x:{grid:{display:false}, ticks:{color:TICK, font:{size:11}}, stacked:true},
+      y:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}, callback:function(v){return v+'%'}}, max:100, stacked:true}
+    }
+  }
+});
+
+/* ── TABLE SORT ── */
+var sortDir = {};
+function sortTable(col) {
+  var tbody = document.querySelector('#compTable tbody');
+  var rows  = Array.from(tbody.querySelectorAll('tr'));
+  var ths   = document.querySelectorAll('#compTable thead th');
+  ths.forEach(function(th){ th.classList.remove('sort-asc','sort-desc'); });
+  sortDir[col] = !sortDir[col];
+  ths[col].classList.add(sortDir[col] ? 'sort-asc' : 'sort-desc');
+  rows.sort(function(a,b){
+    var av = a.cells[col].textContent.trim();
+    var bv = b.cells[col].textContent.trim();
+    var an = parseFloat(av), bn = parseFloat(bv);
+    var cmp = isNaN(an)||isNaN(bn) ? av.localeCompare(bv) : an-bn;
+    return sortDir[col] ? cmp : -cmp;
+  });
+  rows.forEach(function(r){ tbody.appendChild(r); });
+}
+
+/* ═══════════════════════════════════════════
+   YEAR SWITCHER (KPI CARDS)
+══════════════════════════════════════════════ */
+var kpiByYear = {
+  '2024':{pop:'173.6M', le:'74.9 yrs', im:'20.8', fr:'1.91', popD:'↑ +1.22%'},
+  '2020':{pop:'169.4M', le:'72.6 yrs', im:'24.0', fr:'2.18', popD:'↑ +1.05%'},
+  '2015':{pop:'159.7M', le:'71.2 yrs', im:'32.0', fr:'2.18', popD:'↑ +1.30%'},
+  '2010':{pop:'148.4M', le:'68.9 yrs', im:'42.0', fr:'2.40', popD:'↑ +1.55%'},
+  '2000':{pop:'129.2M', le:'64.0 yrs', im:'74.0', fr:'3.20', popD:'↑ +2.10%'},
+  '1990':{pop:'107.1M', le:'59.2 yrs', im:'120',  fr:'4.40', popD:'↑ +2.50%'},
+};
+function changeYear(y) {
+  var d = kpiByYear[y] || kpiByYear['2024'];
+  animateVal('k-pop', d.pop);
+  animateVal('k-le',  d.le);
+  animateVal('k-im',  d.im);
+  animateVal('k-fr',  d.fr);
+  showToast('Showing data for '+y, '📅');
+}
+function animateVal(id, newVal) {
+  var el = document.getElementById(id);
+  el.classList.add('updating');
+  setTimeout(function(){ el.textContent = newVal; el.classList.remove('updating'); }, 200);
+}
+
+/* ═══════════════════════════════════════════
+   TREND ANALYSIS PAGE
+══════════════════════════════════════════════ */
+var multiChart, growthChart;
+var activeTrendLines = {le:true, im:true, fr:true, pop:true};
+
+function normalise(arr) {
+  var mn=Math.min.apply(null,arr), mx=Math.max.apply(null,arr);
+  return arr.map(function(v){ return Math.round(((v-mn)/(mx-mn))*100); });
+}
+
+function buildTrendPage() {
+  var ctx = document.getElementById('multiTrendC').getContext('2d');
+  multiChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:YEARS, datasets:[
+      {label:'Life Expectancy', data:normalise(mData.le.data), borderColor:'#0f7a52', backgroundColor:hexToRgba('#0f7a52',.06), fill:true, tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#0f7a52'},
+      {label:'Infant Mortality', data:normalise(mData.im.data), borderColor:'#b45309', backgroundColor:hexToRgba('#b45309',.06), fill:true, tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#b45309'},
+      {label:'Fertility Rate', data:normalise(mData.fr.data), borderColor:'#6d28d9', backgroundColor:hexToRgba('#6d28d9',.06), fill:true, tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#6d28d9'},
+      {label:'Population', data:normalise(mData.pop.data), borderColor:'#1d6fb8', backgroundColor:hexToRgba('#1d6fb8',.06), fill:true, tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#1d6fb8'},
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true, position:'top', labels:{color:TICK, font:{size:11}, boxWidth:10, padding:12}}, tooltip:TIP },
+      scales:{
+        x:{ grid:{color:GRID}, ticks:{color:TICK, font:{size:11}} },
+        y:{ grid:{color:GRID}, ticks:{color:TICK, font:{size:11}, callback:function(v){return v+''}},
+          title:{display:true, text:'Normalised (0–100)', color:TICK, font:{size:10}} }
+      }
+    }
+  });
+
+  var gCtx = document.getElementById('growthC').getContext('2d');
+  growthChart = new Chart(gCtx, {
+    type:'bar',
+    data:{ labels:['1990–95','1995–00','2000–05','2005–10','2010–15','2015–20','2020–24'],
+      datasets:[{label:'Growth %', data:[2.41,1.43,1.69,1.06,1.48,1.18,0.62], backgroundColor:['#0f7a52','#0f7a52','#0f7a52','#1d6fb8','#1d6fb8','#6d28d9','#6d28d9'], borderRadius:4}]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:TIP },
+      scales:{ x:{grid:{display:false}, ticks:{color:TICK, font:{size:10}}}, y:{grid:{color:GRID}, ticks:{color:TICK, font:{size:10}, callback:function(v){return v+'%'}}} }
+    }
+  });
+}
+
+function toggleTrendLine(key, btn) {
+  btn.classList.toggle('on');
+  activeTrendLines[key] = btn.classList.contains('on');
+  if(!multiChart) return;
+  var keyMap = {le:0, im:1, fr:2, pop:3};
+  var ds = multiChart.data.datasets[keyMap[key]];
+  ds.hidden = !activeTrendLines[key];
+  multiChart.update();
+}
+
+/* ═══════════════════════════════════════════
+   MORTALITY PAGE
+══════════════════════════════════════════════ */
+function buildMortalityPage() {
+  new Chart(document.getElementById('mortC').getContext('2d'), {
+    type:'line',
+    data:{ labels:YEARS, datasets:[
+      {label:'Infant mortality', data:[120,96,74,58,42,32,24,20.8], borderColor:'#b91c1c', backgroundColor:hexToRgba('#b91c1c',.06), fill:true, tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#b91c1c'},
+      {label:'Under-5 mortality', data:[148,118,90,72,52,40,31,28.2], borderColor:'#b45309', backgroundColor:hexToRgba('#b45309',.06), fill:true, tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#b45309'},
+      {label:'Maternal mortality (÷10)', data:[57.4,47.6,36.6,29.4,22.8,18.2,14.8,12.3], borderColor:'#6d28d9', backgroundColor:hexToRgba('#6d28d9',.06), fill:true, tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#6d28d9'},
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true, position:'top', labels:{color:TICK, font:{size:11}, boxWidth:10, padding:12}}, tooltip:TIP },
+      scales:{ x:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}}}, y:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}}, title:{display:true, text:'Rate per 1,000', color:TICK, font:{size:10}}} }
+    }
+  });
+
+  new Chart(document.getElementById('causeDonutC').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:causes.map(function(c){return c.name}), datasets:[{data:causes.map(function(c){return c.pct}), backgroundColor:causes.map(function(c){return c.c}), borderWidth:3, borderColor:'#fff', hoverOffset:5}]},
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'55%',
+      plugins:{ legend:{display:true, position:'right', labels:{color:TICK, font:{size:10}, boxWidth:10, padding:8}}, tooltip:{...TIP, callbacks:{label:function(c){return ' '+c.label+': '+c.parsed+'%'}}}}
+    }
+  });
+
+  var sdgs = [
+    {num:'3.1', name:'Maternal Mortality', pct:82},
+    {num:'3.2', name:'Child Mortality',    pct:91},
+    {num:'3.3', name:'Infectious Diseases',pct:65},
+    {num:'3.4', name:'NCDs & Mental Health',pct:44},
+    {num:'3.7', name:'Reproductive Health', pct:77},
+    {num:'3.8', name:'Universal Health Cov.',pct:58},
+  ];
+  var sg = document.getElementById('sdgGrid');
+  sdgs.forEach(function(s){
+    var d = document.createElement('div');
+    d.className = 'sdg-card';
+    d.innerHTML = '<div class="sdg-head"><span class="sdg-num">SDG '+s.num+'</span><span class="sdg-name">'+s.name+'</span></div>'
+      +'<div class="sdg-bar"><div class="sdg-fill" style="width:0%"></div></div>'
+      +'<div class="sdg-pct">'+s.pct+'% achieved</div>';
+    sg.appendChild(d);
+    setTimeout(function(){ d.querySelector('.sdg-fill').style.width=s.pct+'%'; }, 400);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   FERTILITY PAGE
+══════════════════════════════════════════════ */
+function buildFertilityPage() {
+  new Chart(document.getElementById('fertC').getContext('2d'), {
+    type:'line',
+    data:{ labels:YEARS, datasets:[
+      {label:'Bangladesh TFR', data:[4.4,3.8,3.2,2.8,2.4,2.18,2.18,1.91], borderColor:'#0f7a52', backgroundColor:hexToRgba('#0f7a52',.07), fill:true, tension:0.4, pointRadius:4, borderWidth:2, pointBackgroundColor:'#0f7a52'},
+      {label:'Replacement level (2.1)', data:[2.1,2.1,2.1,2.1,2.1,2.1,2.1,2.1], borderColor:'#b91c1c', borderDash:[5,5], borderWidth:1.5, pointRadius:0, fill:false},
+      {label:'South Asia avg', data:[4.8,4.3,3.7,3.2,2.9,2.6,2.4,2.2], borderColor:'#6d28d9', borderDash:[3,3], borderWidth:1.5, pointRadius:0, fill:false},
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true, position:'top', labels:{color:TICK, font:{size:11}, boxWidth:10, padding:12}}, tooltip:TIP },
+      scales:{ x:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}}}, y:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}}, title:{display:true, text:'Births per woman', color:TICK, font:{size:10}}} }
+    }
+  });
+
+  new Chart(document.getElementById('marriageC').getContext('2d'), {
+    type:'pie',
+    data:{ labels:['Before 15','15–17','18–19','20+'], datasets:[{data:[14,31,28,27], backgroundColor:['#b91c1c','#b45309','#1d6fb8','#0f7a52'], borderWidth:3, borderColor:'#fff'}]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:true, position:'right', labels:{color:TICK, font:{size:10}, boxWidth:10, padding:8}}, tooltip:TIP }}
+  });
+
+  new Chart(document.getElementById('divisionC').getContext('2d'), {
+    type:'bar',
+    data:{ labels:['Sylhet','Rajshahi','Mymensingh','Rangpur','Barisal','Dhaka','Khulna','Chitt.'],
+      datasets:[{label:'Crude birth rate', data:[24.1,21.8,20.6,20.1,19.5,18.2,17.4,16.8], backgroundColor:'#0f7a52', borderRadius:4}]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:TIP },
+      scales:{ x:{grid:{color:GRID}, ticks:{color:TICK, font:{size:10}}}, y:{grid:{display:false}, ticks:{color:TICK, font:{size:10}}} }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════
+   DISEASE BURDEN PAGE
+══════════════════════════════════════════════ */
+function buildDiseasePage() {
+  new Chart(document.getElementById('ncdC').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:['Non-communicable (NCDs)','Communicable','Injuries'],
+      datasets:[{data:[64,28,8], backgroundColor:['#b91c1c','#0f7a52','#b45309'], borderWidth:3, borderColor:'#fff', hoverOffset:5}]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'58%',
+      plugins:{ legend:{display:true, position:'right', labels:{color:TICK, font:{size:10}, boxWidth:10, padding:10}}, tooltip:{...TIP, callbacks:{label:function(c){return ' '+c.label+': '+c.parsed+'%'}}}}
+    }
+  });
+
+  var diseases = [
+    {name:'Cardiovascular', pct:100, c:'#b91c1c', dalys:'6.8M'},
+    {name:'Respiratory',    pct:68,  c:'#b45309', dalys:'4.6M'},
+    {name:'Mental health',  pct:54,  c:'#6d28d9', dalys:'3.7M'},
+    {name:'Diabetes',       pct:45,  c:'#1d6fb8', dalys:'3.1M'},
+    {name:'Tuberculosis',   pct:36,  c:'#0f7a52', dalys:'2.4M'},
+    {name:'Diarrhoeal',     pct:28,  c:'#9ca3af', dalys:'1.9M'},
+  ];
+  var dl = document.getElementById('diseaseList');
+  diseases.forEach(function(d){
+    var row = document.createElement('div');
+    row.className = 'cause-row';
+    row.innerHTML = '<span class="cn">'+d.name+'</span><div class="cbar"><div class="cbf" style="width:0%;background:'+d.c+'"></div></div><span class="cpct">'+d.dalys+'</span>';
+    dl.appendChild(row);
+    setTimeout(function(){ row.querySelector('.cbf').style.width=d.pct+'%'; }, 300);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   POPULATION DATA PAGE
+══════════════════════════════════════════════ */
+function buildPopulationPage() {
+  new Chart(document.getElementById('popGrowthC').getContext('2d'), {
+    type:'line',
+    data:{ labels:YEARS, datasets:[{ label:'Population (M)', data:[107.1,120.4,129.2,140.5,148.4,159.7,169.4,173.6],
+      borderColor:'#0f7a52', backgroundColor:hexToRgba('#0f7a52',.08), fill:true, tension:0.4, pointRadius:4, borderWidth:2.5, pointBackgroundColor:'#0f7a52' }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:TIP },
+      scales:{ x:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}}}, y:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}, callback:function(v){return v+'M'}}, title:{display:true, text:'Population (millions)', color:TICK, font:{size:10}}} }
+    }
+  });
+
+  new Chart(document.getElementById('divPopC').getContext('2d'), {
+    type:'bar',
+    data:{ labels:['Dhaka','Chittagong','Rajshahi','Khulna','Sylhet','Mymensingh','Rangpur','Barisal'],
+      datasets:[{label:'Population (M)', data:[40.8,32.2,19.2,16.3,12.1,11.8,10.9,9.4], backgroundColor:'#0f7a52', borderRadius:4}]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:TIP },
+      scales:{ x:{grid:{color:GRID}, ticks:{color:TICK, font:{size:10}, callback:function(v){return v+'M'}}}, y:{grid:{display:false}, ticks:{color:TICK, font:{size:10}}} }
+    }
+  });
+
+  new Chart(document.getElementById('ruralC2').getContext('2d'), {
+    type:'bar',
+    data:{ labels:['1990','2000','2010','2015','2020','2024'],
+      datasets:[
+        {label:'Urban', data:[20,23,30,34,38,42], backgroundColor:'#0f7a52', borderRadius:4, stack:'s'},
+        {label:'Rural', data:[80,77,70,66,62,58], backgroundColor:'#d1ead9', borderRadius:4, stack:'s'}
+      ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true, position:'top', align:'end', labels:{color:TICK, font:{size:11}, boxWidth:10, padding:10}}, tooltip:{...TIP, callbacks:{label:function(c){return ' '+c.dataset.label+': '+c.parsed.y+'%'}}}},
+      scales:{ x:{grid:{display:false}, ticks:{color:TICK, font:{size:11}}, stacked:true}, y:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}, callback:function(v){return v+'%'}}, max:100, stacked:true} }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════
+   SOUTH ASIA PAGE
+══════════════════════════════════════════════ */
+var saMetrics = {
+  le:  { label:'Life Expectancy (years)', data:[77.0,74.9,73.2,71.4,71.0,70.6,68.4], color:'#0f7a52' },
+  im:  { label:'Infant Mortality (per 1,000)', data:[7.4,20.8,26.2,28.0,28.8,29.4,58.2], color:'#b91c1c' },
+  fr:  { label:'Fertility Rate', data:[2.28,1.91,2.03,1.96,1.83,1.74,3.47], color:'#6d28d9' },
+  gdp: { label:'Health spend (% GDP)', data:[4.0,2.4,3.5,2.4,5.3,3.8,2.8], color:'#b45309' },
+};
+var countries = ['Sri Lanka','Bangladesh','India (avg)','India','Nepal','Bhutan','Pakistan'];
+var saBarChart;
+
+function buildSouthAsiaPage() {
+  var ctx = document.getElementById('saBarC').getContext('2d');
+  var m = saMetrics.le;
+  saBarChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:countries, datasets:[{ label:m.label, data:m.data, backgroundColor:countries.map(function(c){ return c==='Bangladesh'?'#0f7a52':'#e2e5ec'; }), borderRadius:5 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:TIP },
+      scales:{ x:{grid:{display:false}, ticks:{color:TICK, font:{size:11}}}, y:{grid:{color:GRID}, ticks:{color:TICK, font:{size:11}}} }
+    }
+  });
+
+  var sl2 = document.getElementById('saList2');
+  saData.forEach(function(r,i){
+    var bd = r.name==='Bangladesh';
+    var row = document.createElement('div');
+    row.className = 'reg-row';
+    if(bd) row.style.cssText='background:var(--primary-l);border-radius:var(--r-md);padding-left:10px;padding-right:6px;margin:0 -4px;';
+    row.innerHTML = '<span class="rk">'+(i+1)+'</span>'
+      +'<span class="rn"'+(bd?' style="color:var(--primary-d);font-weight:600"':'')+'>'+r.name+(bd?' ▴':'')+'</span>'
+      +'<div class="bt"><div class="bf" style="width:0%;background:'+r.c+'"></div></div>'
+      +'<span class="rv">'+r.val+' yrs</span>';
+    sl2.appendChild(row);
+    setTimeout(function(){ row.querySelector('.bf').style.width=r.pct+'%'; }, 300+i*80);
+  });
+
+  new Chart(document.getElementById('saProgressC').getContext('2d'), {
+    type:'bar',
+    data:{ labels:['Sri Lanka','Bangladesh','India','Nepal','Bhutan','Pakistan'],
+      datasets:[{label:'Life exp. gain (yrs)', data:[10.5,15.7,12.1,14.2,12.8,8.4], backgroundColor:['#1d6fb8','#0f7a52','#6d28d9','#b45309','#9ca3af','#b91c1c'], borderRadius:4}]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:TIP },
+      scales:{ x:{grid:{display:false}, ticks:{color:TICK, font:{size:10}}}, y:{grid:{color:GRID}, ticks:{color:TICK, font:{size:10}}, title:{display:true, text:'Years gained', color:TICK, font:{size:9}}} }
+    }
+  });
+}
+
+function setSaMetric(key, btn) {
+  document.querySelectorAll('#saPills .pill').forEach(function(p){ p.classList.remove('on'); });
+  btn.classList.add('on');
+  if(!saBarChart) return;
+  var m = saMetrics[key];
+  saBarChart.data.datasets[0].label = m.label;
+  saBarChart.data.datasets[0].data = m.data;
+  saBarChart.update();
+}
+
+/* ═══════════════════════════════════════════
+   GLOBAL RANK PAGE
+══════════════════════════════════════════════ */
+var rankData = [
+  {rank:1, country:'Japan',       le:84.3, change:'+8.2', badge:'gold'},
+  {rank:2, country:'Switzerland', le:83.8, change:'+7.1', badge:'silver'},
+  {rank:3, country:'Singapore',   le:83.2, change:'+9.4', badge:'bronze'},
+  {rank:8, country:'Australia',   le:83.0, change:'+6.8', badge:''},
+  {rank:22, country:'Sri Lanka',  le:77.0, change:'+12.1', badge:''},
+  {rank:30, country:'China',      le:76.4, change:'+13.2', badge:''},
+  {rank:48, country:'Thailand',   le:75.5, change:'+11.8', badge:''},
+  {rank:97, country:'Bangladesh', le:74.9, change:'+15.7', badge:'', highlight:true},
+  {rank:104, country:'India',     le:71.4, change:'+12.5', badge:''},
+  {rank:109, country:'Nepal',     le:71.0, change:'+14.2', badge:''},
+  {rank:118, country:'Bhutan',    le:70.6, change:'+13.8', badge:''},
+  {rank:133, country:'Pakistan',  le:68.4, change:'+10.2', badge:''},
+  {rank:140, country:'Myanmar',   le:67.2, change:'+9.6', badge:''},
+  {rank:155, country:'Cambodia',  le:63.8, change:'+14.4', badge:''},
+];
+var allRank = rankData;
+
+function renderRankTable(data) {
+  var tbody = document.getElementById('rankBody');
+  tbody.innerHTML = '';
+  data.forEach(function(r){
+    var tr = document.createElement('tr');
+    if(r.highlight) tr.classList.add('highlight');
+    var badgeClass = r.badge ? ' '+r.badge : '';
+    tr.innerHTML = '<td><span class="rank-badge'+badgeClass+'">'+(r.rank<=3?['🥇','🥈','🥉'][r.rank-1]:r.rank)+'</span></td>'
+      +'<td style="font-weight:'+(r.highlight?'600':'400')+'">'+r.country+(r.highlight?' ◀ BD':'')+'</td>'
+      +'<td style="font-family:var(--mono)">'+r.le+' yrs</td>'
+      +'<td><span class="tpill tup">'+r.change+'</span></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function buildGlobalRankPage() { renderRankTable(rankData); }
+
+function filterRankTable(q) {
+  renderRankTable(q ? allRank.filter(function(r){ return r.country.toLowerCase().includes(q.toLowerCase()); }) : allRank);
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+// Announce loaded
+setTimeout(function(){ showToast('Dashboard loaded — 2024 data', '🇧🇩'); }, 800);
+</script>
+</body>
+</html>
